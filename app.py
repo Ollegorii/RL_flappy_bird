@@ -17,20 +17,21 @@ GAMMA = 0.99
 INITIAL_EPSILON = 0.05
 FINAL_EPSILON = 0.001
 EPSILON_DECAY = 0.99995
-MEMORY_SIZE = 50000
-BATCH_SIZE = 32
+MEMORY_SIZE = 200_000
+BATCH_SIZE = 128
 UPDATE_TARGET_FREQ = 1000
-LEARNING_RATE = 1e-3
+LEARNING_RATE = 3e-4
 INPUT_SHAPE = (4, 80, 80)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 
 class DQN(nn.Module):
     def __init__(self):
         super(DQN, self).__init__()
-        self.conv1 = nn.Conv2d(4, 32, kernel_size=8, stride=4)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
+        self.conv1 = nn.Conv2d(4, 64, kernel_size=8, stride=4)
+        self.conv2 = nn.Conv2d(64, 128, kernel_size=4, stride=2)
+        self.conv3 = nn.Conv2d(128, 64, kernel_size=3, stride=1)
         
         # Рассчитываем размер выхода сверточных слоев
         def conv2d_size_out(size, kernel_size, stride):
@@ -41,7 +42,9 @@ class DQN(nn.Module):
         linear_input_size = convw * convh * 64
         
         self.fc1 = nn.Linear(linear_input_size, 512)
-        self.fc2 = nn.Linear(512, 2)
+        self.fc2 = nn.Linear(512, 256)
+        self.fc3 = nn.Linear(256, 128)
+        self.fc4 = nn.Linear(128, 2)
         
     def forward(self, x):
         x = F.relu(self.conv1(x))
@@ -49,7 +52,9 @@ class DQN(nn.Module):
         x = F.relu(self.conv3(x))
         x = x.view(x.size(0), -1)  # flatten
         x = F.relu(self.fc1(x))
-        return self.fc2(x)
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        return self.fc4(x)
 
 class DQNAgent:
     def __init__(self):
@@ -137,6 +142,8 @@ def train_agent():
             agent.remember(state, action, reward, next_state, terminal)
             agent.replay()
             scores.append(score)
+            if score > max_score:
+                max_score = score
             
             state = next_state
             
@@ -145,12 +152,10 @@ def train_agent():
             #     print(f"Score: {max_score}, Epsilon: {agent.epsilon:.4f}")
             
             if terminal:
-                print(f"Episode: {episode}, Score: {score}, Epsilon: {agent.epsilon:.4f}, reward {reward}")
-                
-                max_score = max(scores)
+                print(f"Episode: {episode}, Score: {scores[-2]}, max_score: {max_score}, Epsilon: {agent.epsilon:.4f}")
 
-                if max_score >= 100:
-                    print("Success! Achieved score of 100+")
+                if max_score >= 250:
+                    print("Success! Achieved score of 250+")
                     break
                 
                 episode += 1
@@ -226,7 +231,8 @@ def play_with_trained_agent(model_path='flappy_bird_dqn.pth'):
 
 if __name__ == '__main__':
     # Train the agent
-    train_agent()
+    # train_agent()
+
     
     # Play with trained agent
-    play_with_trained_agent()
+    play_with_trained_agent(model_path='flappy_bird_dqn_120.pth')

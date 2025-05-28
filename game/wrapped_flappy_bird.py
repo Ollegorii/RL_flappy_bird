@@ -109,7 +109,7 @@ class GameState:
                 self.playerFlapped = True
                 reward += 0.3
 
-        # Проверка прохождения трубы (ИСПРАВЛЕННАЯ ЛОГИКА)
+        # Проверка прохождения трубы 
         playerMidPos = self.playerx + PLAYER_WIDTH / 2
         pipeMidPos = next_pipe['x'] + PIPE_WIDTH / 2
         
